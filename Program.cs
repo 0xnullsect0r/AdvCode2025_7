@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-class AdvCode2025_7
+class TachyonManifold
 {
     static void Main()
     {
         string[] lines = null;
-        
+
         string[] possiblePaths = new[] 
         { 
             "input.txt",
@@ -25,7 +25,7 @@ class AdvCode2025_7
                 break;
             }
         }
-        
+
         if (lines == null)
         {
             Console.WriteLine("ERROR: Could not find input.txt");
@@ -36,7 +36,6 @@ class AdvCode2025_7
             Console.ReadKey();
             return;
         }
-        
 
         lines = lines.Where(l => !string.IsNullOrWhiteSpace(l)).ToArray();
         
@@ -49,7 +48,7 @@ class AdvCode2025_7
         }
         
         Console.WriteLine($"Grid size: {lines.Length} rows");
-        
+
         int maxLen = lines.Max(l => l.Length);
         for (int i = 0; i < lines.Length; i++)
         {
@@ -60,8 +59,14 @@ class AdvCode2025_7
         }
         Console.WriteLine($"Grid width: {maxLen} columns");
         
+        Console.WriteLine("\n=== Part 1 ===");
         int splits = CountBeamSplits(lines);
-        Console.WriteLine($"\nTotal beam splits: {splits}");
+        Console.WriteLine($"Total beam splits: {splits}");
+        
+        Console.WriteLine("\n=== Part 2 ===");
+        long timelines = CountTimelines(lines);
+        Console.WriteLine($"Total timelines: {timelines}");
+        
         Console.WriteLine("\nPress any key to exit...");
         Console.ReadKey();
     }
@@ -74,7 +79,7 @@ class AdvCode2025_7
         int height = grid.Length;
         int width = grid[0].Length;
         int splitCount = 0;
-        
+
         int startRow = -1;
         int startCol = -1;
         for (int row = 0; row < height; row++)
@@ -98,21 +103,21 @@ class AdvCode2025_7
         }
         
         Console.WriteLine($"Starting at row {startRow}, col {startCol}");
-        
+
         HashSet<(int row, int col)> visited = new HashSet<(int, int)>();
-        
+
         Queue<(int row, int col)> queue = new Queue<(int, int)>();
         queue.Enqueue((startRow + 1, startCol));
         
         while (queue.Count > 0)
         {
             var (row, col) = queue.Dequeue();
-            
+
             while (true)
             {
                 if (row < 0 || row >= height || col < 0 || col >= width)
                     break;
-                
+
                 if (col >= grid[row].Length)
                     break;
                     
@@ -140,5 +145,80 @@ class AdvCode2025_7
         Console.WriteLine($"Total splitters activated: {splitCount}");
         
         return splitCount;
+    }
+    
+    static long CountTimelines(string[] grid)
+    {
+        if (grid == null || grid.Length == 0)
+            return 0;
+            
+        int height = grid.Length;
+        int width = grid[0].Length;
+        
+        int startRow = -1;
+        int startCol = -1;
+        for (int row = 0; row < height; row++)
+        {
+            for (int col = 0; col < grid[row].Length && col < width; col++)
+            {
+                if (grid[row][col] == 'S')
+                {
+                    startRow = row;
+                    startCol = col;
+                    break;
+                }
+            }
+            if (startRow != -1) break;
+        }
+        
+        if (startRow == -1 || startCol == -1)
+        {
+            Console.WriteLine("Error: Could not find starting position 'S'");
+            return 0;
+        }
+        
+        Dictionary<(int, int), long> memo = new Dictionary<(int, int), long>();
+        
+        long CountPathsFrom(int row, int col)
+        {
+            while (true)
+            {
+                if (memo.ContainsKey((row, col)))
+                    return memo[(row, col)];
+
+                if (row < 0 || row >= height || col < 0 || col >= width || col >= grid[row].Length)
+                {
+                    return 1;
+                }
+                    
+                char cell = grid[row][col];
+                
+                if (cell == '^')
+                {
+                    long leftPaths = 0;
+                    long rightPaths = 0;
+                    
+                    if (col > 0)
+                        leftPaths = CountPathsFrom(row + 1, col - 1);
+                    else
+                        leftPaths = 1;
+
+                    if (col < width - 1)
+                        rightPaths = CountPathsFrom(row + 1, col + 1);
+                    else
+                        rightPaths = 1;
+                    
+                    long total = leftPaths + rightPaths;
+                    memo[(row, col)] = total;
+                    return total;
+                }
+                
+                row++;
+            }
+        }
+        
+        long timelineCount = CountPathsFrom(startRow + 1, startCol);
+        
+        return timelineCount;
     }
 }
